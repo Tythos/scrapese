@@ -14,7 +14,7 @@ from os import path
 
 url = ''
 
-def resolveUrl(href, baseUrl=None):
+def _resolveLink(href, baseUrl=None):
     if baseUrl is None:
         baseUrl = url
     absUrl = ''
@@ -39,18 +39,18 @@ def resolveUrl(href, baseUrl=None):
         absUrl = pr.netloc + '/' + '/'.join(parts) + '/' + href
     return pr.scheme + '//' + absUrl.replace('//', '/')
     
-def getTitle(article):
+def _getTitle(article):
     # BS4 will parse the title string into a br tag
     header = article.find('h1')
     return header.find('br').text.strip()
     
-def getSummary(article):
+def _getSummary(article):
     # The article summary is the 
     hr = article.find('hr')
     ns = [ch for ch in hr.children if type(ch) is bs4.element.NavigableString]
     return ns[-1].strip().encode('ascii', 'ignore')
 
-def getContent(article):
+def _getContent(article):
     paragraphs = []
     hr = article.find('hr')
     p = hr.find('p')
@@ -61,7 +61,7 @@ def getContent(article):
         p = p.find('p')
     return '\n\n'.join(paragraphs)
 
-def getSpecs(article):
+def _getSpecs(article):
     s = []
     p = article.find('p')
     pp = None
@@ -77,7 +77,8 @@ def getSpecs(article):
                 else:
                     if len(k) > 0:
                         v = ch.strip().encode('ascii', 'ignore')
-                        v = re.sub('\.$', '', v)
+                        v = re.sub('^:|[:\.]$', '', v)
+                        k = re.sub('^:|[:\.]$', '', k)
                         specs[k] = v
                         k = ''
         pp = p
@@ -92,17 +93,18 @@ def getSpecs(article):
                 else:
                     if len(k) > 0:
                         v = ch.strip().encode('ascii', 'ignore')
-                        v = re.sub('\.$', '', v)
+                        v = re.sub('^:|[:\.]$', '', v)
+                        k = re.sub('^:|[:\.]$', '', k)
                         specs[k] = v
                         k = ''
         p = p.find('br')    
     return specs
    
-def isAssoc(tag):
+def _isAssoc(tag):
     return tag.name in ['hr','b','ul']
     
-def getAssoc(article):
-    tags = article.find_all(isAssoc)
+def _getAssoc(article):
+    tags = article.find_all(_isAssoc)
     assocs = {}
     k = ''
     v = ''
@@ -117,22 +119,24 @@ def getAssoc(article):
             if tag.name == 'ul' and len(k) > 0:
                 try:
                     name = tag.find('a').text
-                    link = resolveUrl(tag.find('a').attrs['href'])
+                    link = _resolveLink(tag.find('a').attrs['href'])
                     assocs[k].append({name:link})
                 except Exception as e:
                     print('Failed to parse association value from "%s"' % str(tag))
     return assocs
                 
 articleModelMap = {
-    'title': getTitle,
-    'summary': getSummary,
-    'content': getContent,
-    'specifications': getSpecs,
-    'associations': getAssoc
+    'title': _getTitle,
+    'summary': _getSummary,
+    'content': _getContent,
+    'specifications': _getSpecs,
+    'associations': _getAssoc
 }
 
-def pull(term):
-    url = google.lucky('site:astronautix.com ' + term)
+def resolve(term):
+    return google.lucky('site:astronautix.com ' + term)
+
+def query(url):
     res = requests.get(url)
     soup = bs4.BeautifulSoup(res.content, 'html.parser')
     article = soup.find('div', attrs={'id':'col1'})
@@ -141,10 +145,12 @@ def pull(term):
         data[k] = v(article)
     return data
 
-if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        data = pull(sys.argv[1])
-    else:
-        print('Running test w/ RS-25:')
-        data = pull('rs-25')
-    pprint.pprint(data)
+def getValue(model, key):
+    value = model['specifications'][key]
+    try:
+        value = re.sub('\(.+\)', '', value)
+        value = re.sub('[^\d\.e\+\-]', '', value)
+        value = float(value)
+    except:
+        pass
+    return value
