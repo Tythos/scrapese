@@ -30,7 +30,7 @@ class Memory(unittest.TestCase):
     def test_query(self):
         url = newegg.resolve('Corsair 16 GB', 'memory')
         model = newegg.query(url)
-        self.assertEquals(model['Voltage'], '1.5V')
+        self.assertEquals(model['Voltage'], '1.2V')
 
 class Graphics(unittest.TestCase):
     def test_resolve(self):
@@ -43,3 +43,4 @@ class Graphics(unittest.TestCase):
         
 if __name__ == '__main__':
     unittest.main()
+   
