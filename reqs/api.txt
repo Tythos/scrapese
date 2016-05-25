@@ -1,0 +1,6 @@
+scrapese operations:
+ * resolve => based on search terms, returns a URL identifying a unique external resource
+ * query => parses a unique external resource from a given URL into a raw representation
+ * model => converts a raw representation into an object
+ * cache => stores a model object in a local data store
+ * catalog => returns a list of unique ID field values for local data store objects

@@ -4,11 +4,20 @@
 import bs4
 import google
 import requests
+from sgp4 import earth_gravity, io
 from scrapese import data
 
-catUrl = 'https://celestrak.com/pub/satcat.txt'
+catUrl = 'http://celestrak.com/pub/satcat.txt'
 catPath = data.get_path('satcat.txt')
+dbPath = data.get_path('satcat.csv')
 
+def _updateSatCat():
+    """Pulls a new copy of the satellite catalog.
+    """
+    response = requests.get(catUrl)
+    with open(catPath, 'wb') as f:
+        f.write(response.content)
+    
 def _readSatCatLine(line):
     """Returns the name, international designator (id), nad NORAD catalog number
        (catNum) from a line in the satellite catalog.
@@ -46,6 +55,11 @@ def query(url):
        lines, not two, as the first line is the full name of the object.
     """
     response = requests.get(url)
-    bs = bs4.BeautifulSoup(response.content, 'lxml')
+    bs = bs4.BeautifulSoup(response.content, 'html.parser')
     pre = bs.find('pre')
     return pre.string.strip().splitlines()
+
+def model(tle):
+    """Converts a two-line or three-line element set into a basic Keplerian
+       orbit model.
+    """
