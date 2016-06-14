@@ -7,7 +7,9 @@ import requests
 from sgp4 import earth_gravity, io
 from scrapese import data
 
-catUrl = 'http://celestrak.com/pub/satcat.txt'
+ctUrl = 'http://celestrak.com'
+catUrl = ctUrl + '/pub/satcat.txt'
+tleUrl = ctUrl + '/cgi-bin/TLE.pl'
 catPath = data.get_path('satcat.txt')
 dbPath = data.get_path('satcat.csv')
 
@@ -26,6 +28,16 @@ def _readSatCatLine(line):
     id = line[0:11].strip()
     catNum = line[13:18].strip()
     return name, id, catNum
+    
+def resolveTle(sscid):
+    """For a given SSCID (integer value), returns the URL from which the TLE can
+       be requests from CelesTrak.
+    """
+    if type(sscid) in [type(''), type(u'')]:
+        url = tleUrl + '?CATNR=' + sscid
+    else:
+        url = tleUrl + ('?CATNR=%05u' % sscid)
+    return url
     
 def resolve(term):
     """Uses the satellite catalog page (preferably cached) to return a URL to
@@ -48,8 +60,8 @@ def resolve(term):
                 sscid = catNum
     if len(sscid) is 0:
         raise Exception('Unable to resolve resource for term "%s"' % term)
-    return 'http://celestrak.com/cgi-bin/TLE.pl?CATNR=' + sscid
-
+    return resolveTle(sscid)
+    
 def query(url):
     """Returns the TLE stored at the given URL. Will technically contain three
        lines, not two, as the first line is the full name of the object.
@@ -58,8 +70,3 @@ def query(url):
     bs = bs4.BeautifulSoup(response.content, 'html.parser')
     pre = bs.find('pre')
     return pre.string.strip().splitlines()
-
-def model(tle):
-    """Converts a two-line or three-line element set into a basic Keplerian
-       orbit model.
-    """
