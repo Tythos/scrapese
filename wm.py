@@ -50,8 +50,8 @@ def getInfoBox(url):
     table = soup.find_all(isInfobox)[0]
     entry = {}
     for r in table.find_all(isRow):
-        k,v = [c.text for c in r.find_all(['td','th'])]
-        key = filter(k)
+        k, v = [c.text for c in r.find_all(['td','th'])]
+        key = filter(k).strip()
         if key in entry:
             entry[key] = entry[key] + '; ' + filter(v, False)
         else:
@@ -114,9 +114,10 @@ def getTable(url='', table=None):
                     values.append(ch)
                 else:
                     values.append(ch.text)
-            values = ' '.join(values).strip()
             if len(values) == 0:
                 value = cell.text.strip()
+            else:
+                value = ' '.join(values).strip()
             value = value.replace(u'\xa0', ' ')
             value = attemptDate(value)
             if type(value) in [type(0),type(0.)]:
@@ -161,7 +162,22 @@ def getUrl(articleName, fqdn='https://en.wikipedia.org/', apiPath='w/api.php', e
     res = requests.get(fqdn + apiPath + queryString)
     data = json.loads(res.content)
     pages = data['query']['pages']
-    id = int(pages.keys()[0])
+    keys = list(pages.keys())
+    id = int(keys[0])
     if id < 0 and exceptNull:
         raise Exception('Null page returned for article name "%s"' % articleName)
     return '%s?curid=%u' % (fqdn, id)
+
+def main(topic):
+    """By default, scrapes the infobox from the given topic page into a
+       dictionary that is then returned.
+    """
+    url = getUrl(topic)
+    ib = getInfoBox(url)
+    return ib
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        raise Exception('Command-line invocation requires a topic argument')
+    IB = main(sys.argv[1])
+    print(json.dumps(IB, indent=4))
