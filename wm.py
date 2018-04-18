@@ -9,6 +9,28 @@ import re
 import json
 from dateutil import parser
 
+def parseLatLon(text):
+    """Degrees/minutes/seconds notation (including cardinal direction) parsed
+       and converted to float value; returned in two-element tuple along with
+       single-characater cardinal direction.
+    """
+    d, m, s, c = re.split('[^\w]', text)
+    value = float(d) + float(m) / 60 + float(s) / 3600
+    return value, c
+
+def getLatLon(soup):
+    """Scrapes latitude and longitude coordinates from geotag on WM page
+    """
+    lat = soup.find('span', {'class': 'latitude'})
+    latval, cardin = parseLatLon(lat.text)
+    if cardin.lower() == 's':
+        latval = -1 * latval
+    lon = soup.find('span', {'class': 'longitude'})
+    lonval, cardin = parseLatLon(lon.text)
+    if cardin.lower() == 'w':
+        lonval = -1 * lonval
+    return latval, lonval
+
 def isInfobox(tag):
     """Filter for determining if a given table element is a WikiMedia infobox
     """
