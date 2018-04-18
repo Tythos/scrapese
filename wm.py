@@ -14,7 +14,7 @@ def parseLatLon(text):
        and converted to float value; returned in two-element tuple along with
        single-characater cardinal direction.
     """
-    d, m, s, c = re.split('[^\w]', text)
+    d, m, s, c = re.split('[^\w\.]', text)
     value = float(d) + float(m) / 60 + float(s) / 3600
     return value, c
 
